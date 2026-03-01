@@ -160,3 +160,72 @@ class Agent:
     def remember(self, note):
         """Manually write a note to MEMORY.md."""
         self._append_memory(note)
+
+
+# ── v1.0 RAG extension ────────────────────────────────────────────────────────
+
+class RAGAgent(Agent):
+    """
+    soul.py v1.0 — Agent with RAG memory backend.
+    Handles MEMORY.md files with thousands of entries.
+    Falls back to flat injection if chromadb not installed.
+
+    Usage:
+        agent = RAGAgent("SOUL.md", k=5)
+        agent.ask("What did I say about my research last week?")
+    """
+
+    def __init__(self, soul_path="SOUL.md", memory_path="MEMORY.md",
+                 provider="anthropic", api_key=None, model=None,
+                 base_url=None, k=5):
+        # Initialize base without building client yet
+        self.k = k
+        self._rag = None
+        super().__init__(soul_path, memory_path, provider, api_key, model, base_url)
+
+        # Try to init RAG memory
+        try:
+            from rag_memory import RAGMemory
+            self._rag = RAGMemory(str(self.memory_path), k=k)
+        except ImportError:
+            pass  # graceful fallback to flat memory
+
+    def _read_memory(self):
+        if self._rag:
+            # Return placeholder — retrieve() is called per-query
+            return "[RAG memory active — context retrieved per query]"
+        return super()._read_memory()
+
+    def _system_prompt(self, query: str = "") -> str:
+        soul = self._read_soul()
+        if self._rag and query:
+            memory = self._rag.retrieve(query)
+        else:
+            memory = super()._read_memory()
+        return f"{soul}\n\n---\n\n{memory}"
+
+    def _call(self, messages):
+        # Pass query to system prompt for RAG retrieval
+        query = messages[-1]["content"] if messages else ""
+        system = self._system_prompt(query)
+
+        if self.provider == "anthropic":
+            model = self.model or "claude-sonnet-4-6"
+            resp = self._client.messages.create(
+                model=model, max_tokens=MAX_RESPONSE_TOKENS,
+                system=system, messages=messages,
+            )
+            return resp.content[0].text.strip()
+        else:
+            model = self.model or "gpt-4o"
+            resp = self._client.chat.completions.create(
+                model=model, max_tokens=MAX_RESPONSE_TOKENS,
+                messages=[{"role": "system", "content": system}] + messages,
+            )
+            return resp.choices[0].message.content.strip()
+
+    def _append_memory(self, exchange):
+        if self._rag:
+            self._rag.append(exchange)
+        else:
+            super()._append_memory(exchange)

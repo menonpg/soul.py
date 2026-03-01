@@ -38,3 +38,6 @@ soul = "soul_cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[project.optional-dependencies.rag]
+dependencies = ["chromadb>=0.4", "sentence-transformers>=2.2"]
