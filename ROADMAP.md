@@ -9,7 +9,7 @@ Planned features and improvements for soul.py. PRs welcome!
 | Status | Backend | Notes |
 |--------|---------|-------|
 | ✅ | Qdrant | Current default |
-| 🔲 | ChromaDB | Local, zero-config |
+| ✅ | ChromaDB | Local, zero-config (v0.1.2) |
 | 🔲 | pgvector | PostgreSQL native |
 | 🔲 | FAISS | Local, fast |
 | 🔲 | Pinecone | Cloud hosted |
@@ -22,7 +22,7 @@ Planned features and improvements for soul.py. PRs welcome!
 | Status | Provider | Notes |
 |--------|----------|-------|
 | ✅ | Azure OpenAI | Current default |
-| 🔲 | OpenAI direct | |
+| ✅ | OpenAI direct | v0.1.2 |
 | 🔲 | Cohere | |
 | 🔲 | sentence-transformers | Local embeddings |
 | 🔲 | Ollama | Local via Ollama API |
@@ -34,8 +34,8 @@ Planned features and improvements for soul.py. PRs welcome!
 | Status | Feature | Notes |
 |--------|---------|-------|
 | ✅ | `soul init` | Interactive setup wizard |
-| 🔲 | `soul chat` | Interactive CLI mode |
-| 🔲 | `soul status` | Memory stats & diagnostics |
+| ✅ | `soul chat` | Interactive CLI mode (v0.1.2) |
+| ✅ | `soul status` | Memory stats & diagnostics (v0.1.2) |
 | 🔲 | `config.yaml` | File-based configuration |
 | 🔲 | VSCode extension | Syntax highlighting, previews |
 
