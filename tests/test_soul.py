@@ -91,3 +91,42 @@ def test_invalid_provider(tmp_path):
         soul_mod.Agent._build_client = lambda self: (_ for _ in ()).throw(ValueError("Unknown provider: 'fakeprovider'"))
         agent = make_agent(tmp_path, provider="fakeprovider")
         agent._build_client()
+
+
+# ── CLI tests ─────────────────────────────────────────────────────────────────
+
+def test_soul_init_creates_files(tmp_path, monkeypatch):
+    """soul init creates SOUL.md and MEMORY.md."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("builtins.input", lambda _: "")
+    from soul_cli import _init
+    _init()
+    assert (tmp_path / "SOUL.md").exists()
+    assert (tmp_path / "MEMORY.md").exists()
+
+def test_soul_status_no_files(tmp_path, monkeypatch, capsys):
+    """soul status shows missing files."""
+    monkeypatch.chdir(tmp_path)
+    from soul_cli import _status
+    _status()
+    out = capsys.readouterr().out
+    assert "not found" in out
+
+def test_soul_status_with_files(tmp_path, monkeypatch, capsys):
+    """soul status shows file stats."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "SOUL.md").write_text("# SOUL\nYou are a test agent.\n")
+    (tmp_path / "MEMORY.md").write_text("# MEMORY\n\n## Entry 1\nTest\n")
+    from soul_cli import _status
+    _status()
+    out = capsys.readouterr().out
+    assert "SOUL.md" in out
+    assert "MEMORY.md" in out
+
+def test_soul_chat_missing_files(tmp_path, monkeypatch):
+    """soul chat exits if files missing."""
+    monkeypatch.chdir(tmp_path)
+    import pytest
+    from soul_cli import _chat
+    with pytest.raises(SystemExit):
+        _chat([])

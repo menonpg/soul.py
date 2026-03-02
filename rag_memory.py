@@ -1,200 +1,291 @@
 """
-soul.py v1.0 — RAG Memory Backend
-Two modes:
-  "qdrant" — Azure text-embedding-3-large + Qdrant Cloud REST API (semantic)
-  "bm25"   — Pure Python keyword retrieval (zero deps, offline fallback)
-
-No native builds required — pure Python + requests only.
+soul.py — RAG Memory
+Supports multiple backends: qdrant (default), chromadb, bm25 (fallback)
+Supports multiple embedding providers: azure, openai, bm25
+Pure REST for Qdrant/OpenAI — no native builds required.
 """
 
-import os, re, math, json, uuid, requests
+import os, re, math, time, hashlib
 from pathlib import Path
 from datetime import datetime
-from collections import Counter
 
 
-# ── BM25 (pure Python, zero deps) ────────────────────────────────────────────
+# ── BM25 fallback (zero deps) ─────────────────────────────────────────────────
 
 class BM25:
     def __init__(self, k1=1.5, b=0.75):
         self.k1 = k1; self.b = b
-        self.docs = []; self.tf = []
-        self.df = Counter(); self.avgdl = 0
+        self.docs = []; self.tokenized = []
 
     def _tok(self, text):
         return re.findall(r'\w+', text.lower())
 
-    def add(self, doc):
-        tokens = self._tok(doc)
-        self.docs.append(doc)
-        tf = Counter(tokens)
-        self.tf.append(tf)
-        for t in set(tokens): self.df[t] += 1
-        n = len(self.docs)
-        self.avgdl = (self.avgdl * (n-1) + len(tokens)) / n
+    def add(self, text):
+        self.docs.append(text)
+        self.tokenized.append(self._tok(text))
 
-    def score(self, query, idx):
-        N = len(self.docs)
-        dl = sum(self.tf[idx].values())
-        score = 0.0
-        for t in self._tok(query):
-            if t not in self.tf[idx]: continue
-            idf = math.log((N - self.df[t] + 0.5) / (self.df[t] + 0.5) + 1)
-            tf = self.tf[idx][t]
-            score += idf * tf * (self.k1+1) / (tf + self.k1*(1-self.b+self.b*dl/max(self.avgdl,1)))
-        return score
-
-    def retrieve(self, query, k=5):
+    def query(self, q, k=5):
         if not self.docs: return []
-        scores = sorted([(self.score(query, i), i) for i in range(len(self.docs))], reverse=True)
-        return [self.docs[i] for _, i in scores[:k]]
+        qtoks = set(self._tok(q))
+        N = len(self.docs)
+        avgdl = sum(len(d) for d in self.tokenized) / N
+        scores = []
+        for i, toks in enumerate(self.tokenized):
+            tlen = len(toks)
+            freq = {t: toks.count(t) for t in qtoks if t in toks}
+            score = sum(
+                math.log((N - sum(t in d for d in self.tokenized) + 0.5) /
+                         (sum(t in d for d in self.tokenized) + 0.5) + 1) *
+                (f * (self.k1 + 1)) / (f + self.k1 * (1 - self.b + self.b * tlen / avgdl))
+                for t, f in freq.items()
+            ) if freq else 0
+            scores.append((score, i))
+        scores.sort(reverse=True)
+        return [self.docs[i] for _, i in scores[:k] if scores[0][0] > 0]
 
 
-# ── Azure Embeddings (pure REST) ──────────────────────────────────────────────
+# ── Embedding providers ───────────────────────────────────────────────────────
 
-def azure_embed(text, endpoint, api_key,
-                deployment="text-embedding-3-large", api_version="2023-05-15"):
+def _embed_azure(texts, endpoint, api_key, deployment="text-embedding-3-large", api_version="2023-05-15"):
+    import requests
     url = f"{endpoint}/openai/deployments/{deployment}/embeddings?api-version={api_version}"
-    r = requests.post(url,
-        headers={"api-key": api_key, "Content-Type": "application/json"},
-        json={"input": text[:8000]}, timeout=15)
+    r = requests.post(url, headers={"api-key": api_key, "Content-Type": "application/json"},
+                      json={"input": texts}, timeout=30)
     r.raise_for_status()
-    return r.json()["data"][0]["embedding"]
+    return [d["embedding"] for d in r.json()["data"]]
 
 
-# ── Qdrant REST client (no grpc, no native deps) ──────────────────────────────
+def _embed_openai(texts, api_key, model="text-embedding-3-small"):
+    """OpenAI embeddings via direct REST — no SDK needed."""
+    import requests
+    r = requests.post(
+        "https://api.openai.com/v1/embeddings",
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        json={"input": texts, "model": model},
+        timeout=30
+    )
+    r.raise_for_status()
+    return [d["embedding"] for d in r.json()["data"]]
+
+
+# ── Qdrant REST client ────────────────────────────────────────────────────────
 
 class QdrantREST:
-    """Minimal Qdrant Cloud client over REST. No qdrant-client package needed."""
-
     def __init__(self, url, api_key):
         self.url = url.rstrip("/")
         self.headers = {"api-key": api_key, "Content-Type": "application/json"}
 
     def _req(self, method, path, **kwargs):
+        import requests
         r = requests.request(method, f"{self.url}{path}",
-                             headers=self.headers, timeout=20, **kwargs)
+                             headers=self.headers, timeout=30, **kwargs)
         r.raise_for_status()
         return r.json()
 
-    def collection_exists(self, name):
+    def ensure_collection(self, name, size):
         try:
             self._req("GET", f"/collections/{name}")
-            return True
-        except: return False
+        except Exception:
+            self._req("PUT", f"/collections/{name}",
+                      json={"vectors": {"size": size, "distance": "Cosine"}})
 
-    def create_collection(self, name, vector_size=3072):
-        self._req("PUT", f"/collections/{name}", json={
-            "vectors": {"size": vector_size, "distance": "Cosine"}
-        })
+    def upsert(self, collection, points):
+        self._req("PUT", f"/collections/{collection}/points",
+                  json={"points": points})
 
-    def count(self, name):
-        r = self._req("POST", f"/collections/{name}/points/count", json={"exact": True})
-        return r["result"]["count"]
+    def search(self, collection, vector, k):
+        r = self._req("POST", f"/collections/{collection}/points/search",
+                      json={"vector": vector, "limit": k, "with_payload": True})
+        return r.get("result", [])
 
-    def upsert(self, name, point_id, vector, payload):
-        self._req("PUT", f"/collections/{name}/points", json={
-            "points": [{"id": point_id, "vector": vector, "payload": payload}]
-        })
-
-    def search(self, name, vector, k=5):
-        r = self._req("POST", f"/collections/{name}/points/search", json={
-            "vector": vector, "limit": k, "with_payload": True
-        })
-        return r["result"]
+    def count(self, collection):
+        try:
+            r = self._req("POST", f"/collections/{collection}/points/count",
+                          json={"exact": True})
+            return r.get("result", {}).get("count", 0)
+        except Exception:
+            return 0
 
 
-# ── Main RAGMemory ────────────────────────────────────────────────────────────
+# ── ChromaDB backend ──────────────────────────────────────────────────────────
+
+class ChromaBackend:
+    """Local ChromaDB — pip install chromadb, zero-config."""
+
+    def __init__(self, collection_name="soul_memory", persist_path=None):
+        try:
+            import chromadb
+        except ImportError:
+            raise ImportError("pip install chromadb")
+
+        if persist_path:
+            self._client = chromadb.PersistentClient(path=persist_path)
+        else:
+            self._client = chromadb.Client()
+
+        self._col = self._client.get_or_create_collection(
+            name=collection_name,
+            metadata={"hnsw:space": "cosine"}
+        )
+
+    def add(self, text, doc_id=None):
+        doc_id = doc_id or hashlib.md5(text.encode()).hexdigest()
+        # ChromaDB handles embeddings internally with its default model
+        self._col.add(documents=[text], ids=[doc_id])
+
+    def query(self, text, k=5):
+        if self._col.count() == 0:
+            return []
+        results = self._col.query(query_texts=[text], n_results=min(k, self._col.count()))
+        return results["documents"][0] if results["documents"] else []
+
+    def count(self):
+        return self._col.count()
+
+
+# ── RAGMemory — main class ────────────────────────────────────────────────────
 
 class RAGMemory:
     """
-    Pluggable RAG memory for soul.py.
+    Retrieval-Augmented Memory for soul.py.
 
-    Args:
-        memory_path: Path to MEMORY.md
-        mode: "qdrant" (semantic) or "bm25" (keyword, zero deps)
-        collection_name: Qdrant collection (only for qdrant mode)
-        qdrant_url, qdrant_api_key: Qdrant Cloud credentials
-        azure_embedding_endpoint, azure_embedding_key: Azure OpenAI credentials
-        azure_embedding_deployment: Default "text-embedding-3-large"
-        k: Results to retrieve per query
+    Backends:
+        "qdrant"   — Qdrant Cloud via REST (default when configured)
+        "chromadb" — Local ChromaDB (zero-config, pip install chromadb)
+        "bm25"     — Keyword search (zero deps, always available)
+
+    Embedding providers:
+        "azure"  — Azure OpenAI (text-embedding-3-large)
+        "openai" — OpenAI direct (text-embedding-3-small)
+        (ChromaDB and BM25 handle their own embeddings)
     """
 
-    def __init__(self, memory_path="MEMORY.md", mode="qdrant",
-                 collection_name="soul_memory",
-                 qdrant_url=None, qdrant_api_key=None,
-                 azure_embedding_endpoint=None, azure_embedding_key=None,
-                 azure_embedding_deployment="text-embedding-3-large",
-                 azure_embedding_api_version="2023-05-15",
-                 k=5):
+    def __init__(
+        self,
+        memory_path="MEMORY.md",
+        mode="bm25",                        # "qdrant" | "chromadb" | "bm25"
+        collection_name="soul_memory",
+        # Qdrant
+        qdrant_url=None,
+        qdrant_api_key=None,
+        # Azure embeddings
+        azure_embedding_endpoint=None,
+        azure_embedding_key=None,
+        azure_embedding_deployment="text-embedding-3-large",
+        # OpenAI embeddings
+        openai_api_key=None,
+        openai_embedding_model="text-embedding-3-small",
+        # ChromaDB
+        chroma_persist_path=None,
+        # General
+        k=5,
+    ):
+        self.memory_path  = Path(memory_path)
+        self.mode         = mode
+        self.collection   = collection_name
+        self.k            = k
+        self._bm25        = BM25()
+        self._indexed     = set()
 
-        self.memory_path = Path(memory_path)
-        self.mode = mode
-        self.k = k
-        self.collection_name = collection_name
-        self._az_ep      = azure_embedding_endpoint or os.environ.get("AZURE_EMBEDDING_ENDPOINT","")
-        self._az_key     = azure_embedding_key      or os.environ.get("AZURE_EMBEDDING_KEY","")
-        self._az_deploy  = azure_embedding_deployment
-        self._az_version = azure_embedding_api_version
+        # Embedding provider detection
+        self._embed_provider = None
+        self._az_ep  = azure_embedding_endpoint  or os.environ.get("AZURE_EMBEDDING_ENDPOINT","")
+        self._az_key = azure_embedding_key        or os.environ.get("AZURE_EMBEDDING_KEY","")
+        self._az_dep = azure_embedding_deployment
+        self._oai_key = openai_api_key            or os.environ.get("OPENAI_API_KEY","")
+        self._oai_model = openai_embedding_model
 
+        if self._az_ep and self._az_key:
+            self._embed_provider = "azure"
+            self._vec_size = 3072
+        elif self._oai_key:
+            self._embed_provider = "openai"
+            self._vec_size = 1536  # text-embedding-3-small
+
+        # Backend init
         if mode == "qdrant":
             url = qdrant_url or os.environ.get("QDRANT_URL","")
             key = qdrant_api_key or os.environ.get("QDRANT_API_KEY","")
-            self._qd = QdrantREST(url, key)
-            if not self._qd.collection_exists(collection_name):
-                self._qd.create_collection(collection_name, vector_size=3072)
-            self._next_id = self._qd.count(collection_name)
-        else:
-            self._bm25 = BM25()
-            self._indexed = 0
+            if not url: raise ValueError("QDRANT_URL required for qdrant mode")
+            if not self._embed_provider: raise ValueError("Embedding provider required for qdrant mode (set AZURE or OPENAI keys)")
+            self._qdrant = QdrantREST(url, key)
+            self._qdrant.ensure_collection(collection_name, self._vec_size)
+        elif mode == "chromadb":
+            self._chroma = ChromaBackend(collection_name, chroma_persist_path)
+        # bm25: no init needed
 
-        if self.memory_path.exists():
-            self._index_existing()
+        # Index existing memory
+        self._index_memory()
+
+    def _embed(self, texts):
+        if self._embed_provider == "azure":
+            return _embed_azure(texts, self._az_ep, self._az_key, self._az_dep)
+        elif self._embed_provider == "openai":
+            return _embed_openai(texts, self._oai_key, self._oai_model)
+        raise ValueError("No embedding provider configured")
 
     def _parse_entries(self):
+        if not self.memory_path.exists(): return []
         text = self.memory_path.read_text()
-        return [b.strip() for b in re.split(r'\n## ', text)[1:] if b.strip()]
+        parts = re.split(r'\n(?=## )', text)
+        return [p.strip() for p in parts if p.strip() and not p.strip().startswith("# MEMORY")]
 
-    def _index_existing(self):
+    def _index_memory(self):
         entries = self._parse_entries()
-        if self.mode == "qdrant":
-            new = entries[self._next_id:]
-            for e in new: self._add_qdrant(e)
-        else:
-            for e in entries[self._indexed:]:
-                self._bm25.add(e)
-            self._indexed = len(entries)
+        new = [e for e in entries if e not in self._indexed]
+        if not new: return
 
-    def _add_qdrant(self, text):
-        vec = azure_embed(text, self._az_ep, self._az_key, self._az_deploy, self._az_version)
-        self._qd.upsert(self.collection_name, self._next_id, vec, {"text": text})
-        self._next_id += 1
+        if self.mode == "qdrant" and new:
+            vecs = self._embed(new)
+            points = [{"id": abs(hash(e)) % (2**63),
+                       "vector": v, "payload": {"text": e}}
+                      for e, v in zip(new, vecs)]
+            self._qdrant.upsert(self.collection, points)
 
-    def append(self, exchange):
-        ts = datetime.now().strftime("%Y-%m-%d %H:%M")
-        entry = f"{ts}\n{exchange.strip()}"
-        with open(self.memory_path, "a") as f:
-            f.write(f"\n## {entry}\n")
-        if self.mode == "qdrant":
-            self._add_qdrant(entry)
-        else:
-            self._bm25.add(entry)
-            self._indexed += 1
+        elif self.mode == "chromadb":
+            for e in new:
+                self._chroma.add(e)
+
+        for e in new:
+            self._bm25.add(e)
+            self._indexed.add(e)
 
     def retrieve(self, query, k=None):
         k = k or self.k
-        if self.mode == "qdrant":
-            total = self._qd.count(self.collection_name)
-            if total == 0: return "# Your Memory\n(No memories yet.)\n"
-            vec = azure_embed(query, self._az_ep, self._az_key, self._az_deploy, self._az_version)
-            results = self._qd.search(self.collection_name, vec, k=min(k, total))
-            docs = [r["payload"]["text"] for r in results]
-        else:
-            docs = self._bm25.retrieve(query, k)
-            total = self._indexed
+        self._index_memory()
 
-        if not docs: return "# Your Memory\n(Nothing relevant found.)\n"
-        return f"# Relevant Memories ({len(docs)} of {total} retrieved)\n\n" + "\n\n---\n".join(docs)
+        if self.mode == "qdrant" and self._embed_provider:
+            vec = self._embed([query])[0]
+            results = self._qdrant.search(self.collection, vec, k)
+            chunks = [r["payload"]["text"] for r in results]
+        elif self.mode == "chromadb":
+            chunks = self._chroma.query(query, k)
+        else:
+            chunks = self._bm25.query(query, k)
+
+        if not chunks:
+            return f"No relevant memories found for: '{query}'"
+        return "## Relevant memories\n\n" + "\n\n---\n".join(chunks)
+
+    def append(self, note):
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+        entry = f"## {ts}\n{note}"
+        with open(self.memory_path, "a") as f:
+            f.write(f"\n\n{entry}")
+        # Index new entry immediately
+        if self.mode == "qdrant" and self._embed_provider:
+            vec = self._embed([entry])[0]
+            self._qdrant.upsert(self.collection,
+                [{"id": abs(hash(entry)) % (2**63),
+                  "vector": vec, "payload": {"text": entry}}])
+        elif self.mode == "chromadb":
+            self._chroma.add(entry)
+        self._bm25.add(entry)
+        self._indexed.add(entry)
 
     def count(self):
-        return self._qd.count(self.collection_name) if self.mode == "qdrant" else self._indexed
+        if self.mode == "qdrant":
+            return self._qdrant.count(self.collection)
+        elif self.mode == "chromadb":
+            return self._chroma.count()
+        return len(self._bm25.docs)
