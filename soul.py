@@ -106,8 +106,13 @@ class Agent:
         elif self.provider in ("openai", "openai-compatible"):
             try:
                 from openai import OpenAI
+                # For openai-compatible (Ollama, etc.), use dummy key if none provided
+                # Ollama ignores the key, but OpenAI library requires something
+                key = self.api_key or os.environ.get("OPENAI_API_KEY")
+                if not key and self.provider == "openai-compatible":
+                    key = "ollama"  # Dummy key for local endpoints
                 return OpenAI(
-                    api_key=self.api_key or os.environ.get("OPENAI_API_KEY"),
+                    api_key=key,
                     base_url=self.base_url,
                 )
             except ImportError:

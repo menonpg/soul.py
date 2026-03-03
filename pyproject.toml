@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "soul-agent"
-version = "0.1.3"
+version = "0.1.4"
 description = "Persistent identity and memory for any LLM agent — markdown-native, provider-agnostic"
 readme = "README.md"
 license = "MIT"
