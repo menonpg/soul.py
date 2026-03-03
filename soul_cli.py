@@ -69,15 +69,31 @@ def _chat(args):
         sys.exit(1)
 
     # Use HybridAgent if env configured, fall back to simple Agent
-    try:
-        from hybrid_agent import HybridAgent
-        agent = HybridAgent(soul_path=soul_path, memory_path=mem_path, mode=mode)
-        agent_type = "v2.0 (RAG+RLM)"
-    except Exception:
-        from soul import Agent
-        agent = Agent(soul_path=soul_path, memory_path=mem_path,
-                      provider=provider, model=model, base_url=base_url)
-        agent_type = "v0.1 (markdown)"
+    # If --base-url is set (Ollama/local), skip HybridAgent and go straight to Agent
+    agent = None
+    agent_type = None
+
+    if not base_url:
+        try:
+            from hybrid_agent import HybridAgent
+            agent = HybridAgent(soul_path=soul_path, memory_path=mem_path, mode=mode)
+            agent_type = "v2.0 (RAG+RLM)"
+        except Exception:
+            pass
+
+    if agent is None:
+        try:
+            from soul import Agent
+            agent = Agent(soul_path=soul_path, memory_path=mem_path,
+                          provider=provider, model=model, base_url=base_url)
+            agent_type = "v0.1 (markdown)"
+        except Exception as e:
+            print(f"\n⚠️  Could not initialize agent: {e}")
+            print("\nFor Ollama, make sure to pass --provider and --base-url:")
+            print("  soul chat --provider openai-compatible --base-url http://localhost:11434/v1 --model llama3.2")
+            print("\nFor Anthropic:  export ANTHROPIC_API_KEY=sk-ant-...")
+            print("For OpenAI:     export OPENAI_API_KEY=sk-...")
+            sys.exit(1)
 
     mem_lines = Path(mem_path).read_text().count("\n## ")
     print(f"\n🧠 soul.py {agent_type}")
