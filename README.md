@@ -69,7 +69,7 @@ print(result["route"])   # "RAG" or "RLM"
 Don't want to manage local files? **SoulMate API** gives you persistent memory as a service:
 
 ```python
-from soulmate_client import SoulMateClient
+from soulmate import SoulMateClient
 
 # Sign up at soulmate-api-production.up.railway.app/docs
 client = SoulMateClient(
