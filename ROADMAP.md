@@ -4,6 +4,24 @@ Planned features and improvements for soul.py. PRs welcome!
 
 ---
 
+## 🧬 soul-schema (NEW)
+
+A standalone PyPI library for auto-generating semantic layers from any database — the "portable Unity Catalog."
+
+| Status | Feature | Notes |
+|--------|---------|-------|
+| 🔜 | PyPI package | `pip install soul-schema` |
+| 🔜 | Multi-database | Postgres, MySQL, SQLite, BigQuery, Snowflake |
+| 🔜 | Auto-descriptions | LLM-powered from metadata |
+| 🔜 | Learning loop | Corrections are remembered |
+| 🔲 | dbt YAML export | schema.yml generation |
+| 🔲 | Vanna export | DDL + docs + examples |
+| 🔲 | JOIN inference | Learn relationships from usage |
+
+**Why?** Teams without Unity Catalog need a way to build semantic metadata for Text-to-SQL. soul-schema uses soul.py's memory primitive to remember what columns mean and get smarter over time.
+
+---
+
 ## Vector Database Support
 
 | Status | Backend | Notes |
