@@ -3,6 +3,8 @@
 [![PyPI version](https://img.shields.io/pypi/v/soul-agent.svg)](https://pypi.org/project/soul-agent/)
 [![PyPI downloads](https://img.shields.io/pypi/dm/soul-agent.svg)](https://pypi.org/project/soul-agent/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Featured on Shipit](https://www.shipit.buzz/api/products/soulpy/badge?theme=dark)](https://www.shipit.buzz/products/soulpy)
+[![Product Hunt](https://img.shields.io/badge/Product%20Hunt-Featured-DA552F?logo=producthunt&logoColor=white)](https://www.producthunt.com/@menonpg)
 
 **Your AI forgets everything when the conversation ends. soul.py fixes that.**
 
