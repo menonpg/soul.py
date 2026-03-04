@@ -27,7 +27,7 @@ class SoulMateClient:
         >>> print(response)
     """
     
-    DEFAULT_BASE_URL = "https://soulmate-api-production.up.railway.app"
+    DEFAULT_BASE_URL = "https://soulmate-api.themenonlab.com"
     
     def __init__(
         self,

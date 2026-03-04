@@ -105,7 +105,7 @@ Don't want to manage local files? **SoulMate API** gives you persistent memory a
 ```python
 from soulmate import SoulMateClient
 
-# Sign up at soulmate-api-production.up.railway.app/docs
+# Sign up at soulmate-api.themenonlab.com/docs
 client = SoulMateClient(
     api_key="sm_live_...",
     anthropic_key="sk-ant-..."  # BYOK — your own Anthropic key
@@ -123,7 +123,7 @@ response = client.ask("What's my name?")  # → "Prahlad"
 | Git-versioned memory | API-based, instant setup |
 | Free forever | Free tier available |
 
-**Get started:** [soulmate-api-production.up.railway.app/docs](https://soulmate-api-production.up.railway.app/docs)
+**Get started:** [soulmate-api.themenonlab.com/docs](https://soulmate-api.themenonlab.com/docs)
 
 ---
 
