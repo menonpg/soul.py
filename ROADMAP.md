@@ -23,6 +23,7 @@ Planned features and improvements for soul.py. PRs welcome!
 |--------|----------|-------|
 | ✅ | Azure OpenAI | Current default |
 | ✅ | OpenAI direct | v0.1.2 |
+| 🔜 | **Gemini / Vertex AI** | text-embedding-004, multimodal |
 | 🔲 | Cohere | |
 | 🔲 | sentence-transformers | Local embeddings |
 | 🔲 | Ollama | Local via Ollama API |
@@ -61,9 +62,24 @@ Planned features and improvements for soul.py. PRs welcome!
 | ✅ | Anthropic Claude | Native support |
 | ✅ | OpenAI | Native support |
 | ✅ | Ollama | OpenAI-compatible API |
+| 🔜 | **Google Gemini** | gemini-pro, gemini-1.5-pro, gemini-1.5-flash |
 | 🔲 | LangChain | Memory backend |
 | 🔲 | LlamaIndex | Integration |
 | 🔲 | n8n | Official node |
+
+---
+
+## GCP / Google Cloud Support
+
+| Status | Feature | Notes |
+|--------|---------|-------|
+| 🔜 | Gemini models | Full provider support |
+| 🔜 | Vertex AI embeddings | text-embedding-004 |
+| 🔲 | Cloud Storage backend | GCS for memory persistence |
+| 🔲 | Cloud Run deployment | One-click deploy |
+| 🔲 | Firebase integration | Real-time sync |
+
+**Why GCP?** Many teams are GCP-native and want to stay within Google's ecosystem. Full Gemini support means soul.py works without any OpenAI/Anthropic dependencies.
 
 ---
 

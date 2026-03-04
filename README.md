@@ -40,6 +40,7 @@ No database. No server. Just markdown files and smart retrieval.
 pip install soul-agent
 pip install soul-agent[anthropic]
 pip install soul-agent[openai]
+pip install soul-agent[gemini]   # 🔜 Coming soon
 ```
 
 ## Quickstart
