@@ -73,6 +73,8 @@ A standalone PyPI library for auto-generating semantic layers from any database 
 | 🔲 | Auto summarization | Compress old memories |
 | 🔲 | Importance scoring | Prioritize key facts |
 | 🔲 | Tiered memory | Hot/warm/cold storage |
+| 🔲 | Archive-before-prune | Index to vector DB before deleting old files |
+| 🔲 | Frozen storage | S3/GCS backup hook for disaster recovery |
 | 🔲 | Export/import | Backup & restore |
 
 ---
