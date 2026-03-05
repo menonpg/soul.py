@@ -110,3 +110,14 @@ A standalone PyPI library for auto-generating semantic layers from any database 
 Have an idea? Open an issue or submit a PR. All contributions welcome.
 
 See the [GitHub Issues](https://github.com/menonpg/soul.py/issues) for current priorities.
+
+---
+
+## Retrieval Enhancements
+
+| Status | Feature | Notes |
+|--------|---------|-------|
+| 🔲 | LLM Reranking | Score/filter RAG results before generation |
+| 🔲 | Hybrid search | Combine BM25 + semantic scores |
+| 🔲 | Query expansion | LLM rewrites query for better recall |
+| 🔲 | Snippet extraction | Dynamic context windows around matches |
