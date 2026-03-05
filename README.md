@@ -5,8 +5,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Featured on Shipit](https://img.shields.io/badge/Shipit-Featured-6B4FBB?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0tMiAxNWwtNS01IDEuNDEtMS40MUwxMCAxNC4xN2w3LjU5LTcuNTlMMTkgOGwtOSA5eiIvPjwvc3ZnPg==)](https://www.shipit.buzz/products/soulpy)
 [![Product Hunt](https://img.shields.io/badge/Product%20Hunt-Featured-DA552F?logo=producthunt&logoColor=white)](https://www.producthunt.com/@menonpg)
+[![Amazon Book](https://img.shields.io/badge/📚_Book-Amazon-FF9900?logo=amazon&logoColor=white)](https://a.co/d/02T0WadG)
 
 **Your AI forgets everything when the conversation ends. soul.py fixes that.**
+
+> 📖 **NEW: The book is out!** *Soul: Building AI Agents That Remember Who They Are* — everything here + deep dives on identity, memory patterns, multi-agent coordination, and the philosophy of persistent AI. **[Get it on Amazon →](https://a.co/d/02T0WadG)**
 
 ```python
 from hybrid_agent import HybridAgent
@@ -33,6 +36,22 @@ No database. No server. Just markdown files and smart retrieval.
 | v1.0 | [soulv1.themenonlab.com](https://soulv1.themenonlab.com) | Semantic RAG retrieval |
 | v2.0 | [soulv2.themenonlab.com](https://soulv2.themenonlab.com) | Auto query routing: RAG + RLM |
 | **Ask Darwin** | [soul-book.themenonlab.com](https://soul-book.themenonlab.com) | 📖 Book companion — watch routing decisions live |
+
+---
+
+## 📚 The Book
+
+**[Soul: Building AI Agents That Remember Who They Are](https://a.co/d/02T0WadG)**
+
+The complete guide to persistent AI memory. Covers:
+- Why agents forget (and the architectural fix)
+- Identity vs Memory (SOUL.md vs MEMORY.md)
+- RAG vs RLM (when to use each)
+- Multi-agent memory sharing
+- Darwinian evolution of agent identity
+- Working code in every chapter
+
+**[→ Available on Amazon](https://a.co/d/02T0WadG)**
 
 ---
 
