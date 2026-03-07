@@ -252,11 +252,42 @@ See the [Memory Architecture Patterns](https://github.com/menonpg/soul-book) gui
 
 ---
 
+## 🔌 Framework Integrations
+
+Already using a framework? Drop in soul.py memory with one line:
+
+| Framework | Package | Install |
+|-----------|---------|---------|
+| **LangChain** | [langchain-soul](https://github.com/menonpg/langchain-soul) | `pip install langchain-soul` |
+| **LlamaIndex** | [llamaindex-soul](https://github.com/menonpg/llamaindex-soul) | `pip install llamaindex-soul` |
+| **CrewAI** | [crewai-soul](https://github.com/menonpg/crewai-soul) | `pip install crewai-soul` |
+
+```python
+# LangChain
+from langchain_soul import SoulChatMessageHistory
+history = SoulChatMessageHistory(session_id="user-123")
+
+# LlamaIndex
+from llamaindex_soul import SoulChatStore
+chat_store = SoulChatStore()
+
+# CrewAI
+from crewai_soul import SoulMemory
+memory = SoulMemory()
+```
+
+Each integration includes:
+- **soul-agent** — RAG + RLM hybrid retrieval
+- **soul-schema** — Database semantic layer (auto-document your tables)
+- **SoulMate client** — Managed cloud option
+
+---
+
 ## Why not LangChain / LlamaIndex / MemGPT?
 
 Those are orchestration frameworks. soul.py is a primitive — persistent identity and memory you can drop into anything you're building.
 
-- **No framework lock-in** — works with any LLM provider
+- **No framework lock-in** — works with any LLM provider, or *with* your favorite framework via integrations above
 - **Human-readable** — SOUL.md and MEMORY.md are plain text
 - **Version-controllable** — git diff your agent's memories
 - **Composable** — use just the parts you need
