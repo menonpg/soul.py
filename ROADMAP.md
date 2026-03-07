@@ -70,12 +70,53 @@ A standalone PyPI library for auto-generating semantic layers from any database 
 |--------|---------|-------|
 | ✅ | Timestamped logging | Conversation history |
 | ✅ | RAG + RLM routing | Auto query classification |
+| 🔲 | **Modulizer (zero-deps)** | Auto-segment large files into indexed modules |
 | 🔲 | Auto summarization | Compress old memories |
 | 🔲 | Importance scoring | Prioritize key facts |
 | 🔲 | Tiered memory | Hot/warm/cold storage |
 | 🔲 | Archive-before-prune | Index to vector DB before deleting old files |
 | 🔲 | Frozen storage | S3/GCS backup hook for disaster recovery |
 | 🔲 | Export/import | Backup & restore |
+
+---
+
+## 📦 Modulizer (Zero-Deps Memory Segmentation)
+
+**Problem:** Users with large knowledge bases (100KB+ in a single MEMORY.md) face:
+- High token costs (AI reads everything every query)
+- Slow response times
+- Missed information in long documents
+
+**Solution:** `soul modulize` command that auto-segments large files into indexed modules.
+
+| Status | Feature | Notes |
+|--------|---------|-------|
+| 🔲 | `soul modulize` CLI | Segment large .md files into modules |
+| 🔲 | Auto-categorization | LLM-powered topic detection |
+| 🔲 | INDEX.md generation | TOC with module summaries |
+| 🔲 | Smart retrieval | Read index → pull relevant module only |
+| 🔲 | Merge/split tools | Reorganize modules over time |
+
+**How it works:**
+```bash
+soul modulize brain-dump.md --output ./modules/
+# Creates:
+#   modules/INDEX.md (table of contents)
+#   modules/expertise-map.md
+#   modules/career-timeline.md
+#   modules/offer-architecture.md
+#   ... (auto-detected categories)
+```
+
+**Why?** For v0.1 (pure markdown) users who don't want vector databases, this provides ~90% of RAG's token savings with zero infrastructure. The AI reads the lightweight INDEX.md, identifies which module(s) it needs, and pulls only those.
+
+**Trade-offs vs RAG:**
+- ✅ Zero dependencies (no Qdrant, no embeddings)
+- ✅ Human-readable/editable modules
+- ❌ No semantic search (category-based, not concept-based)
+- ❌ Cross-cutting queries may miss relevant modules
+
+**Best for:** Solo creators, personal knowledge bases, air-gapped deployments, prototype agents.
 
 ---
 
