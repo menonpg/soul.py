@@ -15,6 +15,7 @@ Works with OpenAI, Anthropic, or any OpenAI-compatible endpoint.
 import os
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 DEFAULT_SOUL = """\
 # SOUL.md
@@ -52,6 +53,8 @@ class Agent:
         api_key=None,
         model=None,
         base_url=None,
+        modules_dir: Optional[str] = None,
+        use_modules: bool = True,
     ):
         self.soul_path   = Path(soul_path)
         self.memory_path = Path(memory_path)
@@ -60,9 +63,31 @@ class Agent:
         self.model       = model
         self.base_url    = base_url
         self._history    = []
+        self._last_query = None
+        self._last_memory_meta = None
+        
+        # Modules support
+        self.use_modules = use_modules
+        if modules_dir:
+            self.modules_dir = Path(modules_dir)
+        else:
+            self.modules_dir = self.memory_path.parent / "modules"
 
         self._ensure_files()
         self._client = self._build_client()
+        self._modular_memory = None
+        
+        # Initialize modular memory if modules exist
+        if self.use_modules and (self.modules_dir / "INDEX.md").exists():
+            from modular_memory import ModularMemory
+            self._modular_memory = ModularMemory(
+                memory_path=str(self.memory_path),
+                modules_dir=str(self.modules_dir),
+                provider=self.provider,
+                model=self.model,
+                api_key=self.api_key,
+                base_url=self.base_url,
+            )
 
     # ── File management ──────────────────────────────────────────────────────
 
@@ -75,7 +100,20 @@ class Agent:
     def _read_soul(self):
         return self.soul_path.read_text().strip()
 
-    def _read_memory(self):
+    def _read_memory(self, query: Optional[str] = None):
+        """
+        Read memory, using modules if available.
+        
+        Args:
+            query: The user's query (used for module selection)
+        """
+        # Use modular memory if available and query provided
+        if self._modular_memory and query:
+            content, meta = self._modular_memory.retrieve(query)
+            self._last_memory_meta = meta
+            return content
+        
+        # Fallback to full memory
         text = self.memory_path.read_text().strip()
         if len(text) > MAX_MEMORY_CHARS:
             lines = text.splitlines()
@@ -86,6 +124,8 @@ class Agent:
                     break
                 kept.insert(0, line)
             text = "[... earlier memories truncated — see MEMORY.md for full history ...]\n" + "\n".join(kept)
+        
+        self._last_memory_meta = {"mode": "full", "total_kb": round(len(text.encode()) / 1024, 2)}
         return text
 
     def _append_memory(self, exchange):
@@ -122,13 +162,13 @@ class Agent:
 
     # ── Prompt construction ───────────────────────────────────────────────────
 
-    def _system_prompt(self):
-        return f"{self._read_soul()}\n\n---\n\n# Your Memory\n{self._read_memory()}"
+    def _system_prompt(self, query: Optional[str] = None):
+        return f"{self._read_soul()}\n\n---\n\n# Your Memory\n{self._read_memory(query)}"
 
     # ── LLM call ──────────────────────────────────────────────────────────────
 
-    def _call(self, messages):
-        system = self._system_prompt()
+    def _call(self, messages, query: Optional[str] = None):
+        system = self._system_prompt(query)
         if self.provider == "anthropic":
             model = self.model or "claude-sonnet-4-6"
             resp = self._client.messages.create(

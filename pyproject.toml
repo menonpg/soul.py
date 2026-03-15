@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "soul-agent"
-version = "0.1.8"
+version = "0.1.9"
 description = "Persistent identity and memory for any LLM agent — markdown-native, provider-agnostic"
 readme = "README.md"
 license = "MIT"
@@ -41,5 +41,5 @@ soul = "soul_cli:main"
 testpaths = ["tests"]
 
 [tool.setuptools]
-py-modules = ["soul", "soul_cli", "hybrid_agent", "rag_memory", "rlm_memory", "router"]
+py-modules = ["soul", "soul_cli", "hybrid_agent", "rag_memory", "rlm_memory", "router", "modular_memory"]
 packages = ["soulmate", "modulizer"]
