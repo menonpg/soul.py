@@ -57,6 +57,7 @@ def _chat(args):
     soul_path = "SOUL.md"
     mem_path  = "MEMORY.md"
     mode      = "auto"
+    use_modules = True  # Default: use modules if available
 
     i = 0
     while i < len(args):
@@ -66,6 +67,7 @@ def _chat(args):
         elif args[i] == "--soul"      and i+1 < len(args): soul_path = args[i+1]; i+=2
         elif args[i] == "--memory"    and i+1 < len(args): mem_path  = args[i+1]; i+=2
         elif args[i] == "--mode"      and i+1 < len(args): mode      = args[i+1]; i+=2
+        elif args[i] == "--no-modules": use_modules = False; i+=1
         else: i+=1
 
     if not Path(soul_path).exists() or not Path(mem_path).exists():
@@ -89,7 +91,8 @@ def _chat(args):
         try:
             from soul import Agent
             agent = Agent(soul_path=soul_path, memory_path=mem_path,
-                          provider=provider, model=model, base_url=base_url)
+                          provider=provider, model=model, base_url=base_url,
+                          use_modules=use_modules)
             agent_type = "v0.1 (markdown)"
         except Exception as e:
             print(f"\n⚠️  Could not initialize agent: {e}")
@@ -100,10 +103,23 @@ def _chat(args):
             sys.exit(1)
 
     mem_lines = Path(mem_path).read_text().count("\n## ")
+    
+    # Check for modules
+    modules_dir = Path(mem_path).parent / "modules"
+    has_modules = (modules_dir / "INDEX.md").exists() and use_modules
+    
     print(f"\n🧠 soul.py {agent_type}")
     print(f"   Soul:   {soul_path}")
     print(f"   Memory: {mem_path} ({mem_lines} entries)")
-    print(f"   Commands: /memory  /reset  /help  exit\n")
+    if has_modules:
+        module_count = len(list(modules_dir.glob("*.md"))) - 1  # Exclude INDEX.md
+        index_size = (modules_dir / "INDEX.md").stat().st_size / 1024
+        print(f"   Modules: {module_count} modules ({index_size:.1f}KB index) ✨")
+    elif use_modules:
+        print(f"   Modules: not found (run: soul modulize {mem_path})")
+    else:
+        print(f"   Modules: disabled (--no-modules)")
+    print(f"   Commands: /memory  /modules  /reset  /help  exit\n")
 
     try:
         while True:
@@ -117,11 +133,30 @@ def _chat(args):
                 break
             if user_input.lower() in ("/memory","/mem"):
                 print("\n" + Path(mem_path).read_text() + "\n"); continue
+            if user_input.lower() in ("/modules","/mods"):
+                if has_modules:
+                    print(f"\n📁 Modules in {modules_dir}/:")
+                    for f in sorted(modules_dir.glob("*.md")):
+                        size = f.stat().st_size / 1024
+                        print(f"   {'📑' if f.name == 'INDEX.md' else '📄'} {f.name} ({size:.1f}KB)")
+                    stats = getattr(agent, '_last_memory_meta', None)
+                    if stats and stats.get('mode') == 'modules':
+                        print(f"\n   Last query used: {', '.join(stats.get('modules_read', []))}")
+                else:
+                    print("\n⚠️  No modules. Run: soul modulize MEMORY.md")
+                print()
+                continue
             if user_input.lower() == "/reset":
                 agent.reset_conversation()
                 print("↺ Conversation reset (memory preserved)\n"); continue
             if user_input.lower() == "/help":
-                print("\nCommands:\n  /memory  — show full MEMORY.md\n  /reset   — clear conversation history\n  /help    — this message\n  exit     — quit\n"); continue
+                print("\nCommands:")
+                print("  /memory   — show full MEMORY.md")
+                print("  /modules  — show module stats & last used")
+                print("  /reset    — clear conversation history")
+                print("  /help     — this message")
+                print("  exit      — quit\n")
+                continue
             try:
                 result = agent.ask(user_input)
                 if isinstance(result, dict):
@@ -131,7 +166,14 @@ def _chat(args):
                     suffix = f"  \033[2m[{route} · {ms}ms]\033[0m" if route else ""
                     print(f"\nAssistant: {answer}{suffix}\n")
                 else:
-                    print(f"\nAssistant: {result}\n")
+                    # Simple Agent - check for module stats
+                    stats = getattr(agent, '_last_memory_meta', None)
+                    suffix = ""
+                    if stats and stats.get('mode') == 'modules':
+                        mods = stats.get('modules_read', [])
+                        kb = stats.get('total_kb', 0)
+                        suffix = f"  \033[2m[{len(mods)} modules · {kb}KB]\033[0m"
+                    print(f"\nAssistant: {result}{suffix}\n")
             except Exception as e:
                 print(f"\n⚠️  Error: {e}\n")
     except KeyboardInterrupt:

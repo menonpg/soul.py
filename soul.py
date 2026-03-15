@@ -191,8 +191,9 @@ class Agent:
 
     def ask(self, question, remember=True):
         """Ask the agent a question. Persists to MEMORY.md by default."""
+        self._last_query = question
         self._history.append({"role": "user", "content": question})
-        response = self._call(self._history)
+        response = self._call(self._history, query=question)
         self._history.append({"role": "assistant", "content": response})
         if remember:
             self._append_memory(f"Q: {question}\nA: {response}")
@@ -205,3 +206,7 @@ class Agent:
     def remember(self, note):
         """Manually write a note to MEMORY.md."""
         self._append_memory(note)
+
+    def get_memory_stats(self):
+        """Get stats from last memory retrieval."""
+        return self._last_memory_meta or {"mode": "full"}
