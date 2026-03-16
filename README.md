@@ -37,6 +37,7 @@ No database. No server. Just markdown files and smart retrieval.
 | v0.1 | [soul.themenonlab.com](https://soul.themenonlab.com) | Memory persists across sessions |
 | v1.0 | [soulv1.themenonlab.com](https://soulv1.themenonlab.com) | Semantic RAG retrieval |
 | v2.0 | [soulv2.themenonlab.com](https://soulv2.themenonlab.com) | Auto query routing: RAG + RLM |
+| **v0.2.0** | — | Modulizer: 50% token savings, zero-deps |
 | **Ask Darwin** | [soul-book.themenonlab.com](https://soul-book.themenonlab.com) | 📖 Book companion — watch routing decisions live |
 
 ---
@@ -65,6 +66,50 @@ pip install soul-agent[anthropic]
 pip install soul-agent[openai]
 pip install soul-agent[gemini]   # ✅ Now available!
 ```
+
+---
+
+## 🆕 v0.2.0 — Modulizer (50% Token Savings)
+
+Large MEMORY.md files burn tokens. **Modulizer** splits them into indexed modules and retrieves only what's relevant.
+
+```bash
+# Split your memory into modules
+soul modulize MEMORY.md
+
+# Creates:
+# modules/INDEX.md (1.7KB)
+# modules/projects.md
+# modules/tools.md
+# ...
+```
+
+**Two-phase retrieval:**
+1. Read INDEX.md (always small)
+2. LLM picks relevant modules
+3. Load only those modules
+
+**Results:** 47% fewer tokens on 25KB MEMORY.md. Zero infrastructure — no vector DB, no embeddings.
+
+```python
+from soul import Agent
+
+agent = Agent(use_modules=True)  # default when modules exist
+response = agent.ask("What tools have I used?")
+
+# Check what was loaded
+stats = agent.get_memory_stats()
+# {'mode': 'modules', 'modules_read': ['tools.md'], 'total_kb': 5.5}
+```
+
+**CLI commands:**
+- `soul modulize <file>` — split into modules
+- `soul modules list` — view modules
+- `soul chat --no-modules` — disable (opt-out)
+
+**[Full writeup →](https://blog.themenonlab.com/blog/soul-py-v020-modulizer-token-savings)**
+
+---
 
 ## Quickstart
 
