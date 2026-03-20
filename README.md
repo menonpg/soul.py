@@ -58,6 +58,19 @@ The complete guide to persistent AI memory. Covers:
 
 ---
 
+## 📚 Documentation & Blog
+
+| Topic | Link |
+|-------|------|
+| **Getting Started** | [Persistent Memory for LLM Agents](https://blog.themenonlab.com/blog/soul-py-persistent-memory-llm-agents/) |
+| **v2.0 Architecture** | [RAG + RLM Hybrid — How It Works](https://blog.themenonlab.com/blog/soul-py-v2-rag-rlm-hybrid/) |
+| **Comparison** | [soul.py vs mem0 vs Zep vs Letta](https://blog.themenonlab.com/blog/soul-py-vs-mem0-zep-letta-agent-memory/) |
+| **Token Efficiency** | [v0.2.0 Modulizer — Token Savings](https://blog.themenonlab.com/blog/soul-py-v020-modulizer-token-savings/) |
+| **Agent Identity** | [Darwin: Evolution, Identity, and AI Agents](https://blog.themenonlab.com/blog/soul-py-darwin-evolution-agent-identity/) |
+| **LangChain / LlamaIndex** | [soul.py Integrations Guide](https://blog.themenonlab.com/blog/langchain-llamaindex-soul-integrations/) |
+| **Enterprise** | [Is soul.py Enterprise-Ready?](https://blog.themenonlab.com/blog/soul-py-enterprise-what-is-ready/) |
+
+
 ## Install
 
 ```bash
