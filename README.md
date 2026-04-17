@@ -6,12 +6,15 @@
 [![Featured on Shipit](https://img.shields.io/badge/Shipit-Featured-6B4FBB?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0tMiAxNWwtNS01IDEuNDEtMS40MUwxMCAxNC4xN2w3LjU5LTcuNTlMMTkgOGwtOSA5eiIvPjwvc3ZnPg==)](https://www.shipit.buzz/products/soulpy)
 [![Product Hunt](https://img.shields.io/badge/Product%20Hunt-Featured-DA552F?logo=producthunt&logoColor=white)](https://www.producthunt.com/@menonpg)
 [![Amazon Book](https://img.shields.io/badge/📚_Book-Amazon-FF9900?logo=amazon&logoColor=white)](https://a.co/d/02T0WadG)
+[![arXiv](https://img.shields.io/badge/arXiv-2604.09588-b31b1b.svg)](https://arxiv.org/abs/2604.09588)
 
 [![Star History](https://starchart.cc/menonpg/soul.py.svg)](https://starchart.cc/menonpg/soul.py)
 
 **Your AI forgets everything when the conversation ends. soul.py fixes that.**
 
 > 📖 **NEW: The book is out!** *Soul: Building AI Agents That Remember Who They Are* — everything here + deep dives on identity, memory patterns, multi-agent coordination, and the philosophy of persistent AI. **[Get it on Amazon →](https://a.co/d/02T0WadG)**
+
+> 📄 **Research paper:** *[Persistent Identity in AI Agents: A Multi-Anchor Architecture for Resilient Memory and Continuity](https://arxiv.org/abs/2604.09588)* — arXiv:2604.09588 [cs.AI]. Formalizes the identity anchor concept, RAG+RLM hybrid retrieval, and the multi-anchor resilience roadmap. 18 pages.
 
 ```python
 from hybrid_agent import HybridAgent
@@ -372,3 +375,4 @@ MIT
   url    = {https://github.com/menonpg/soul.py}
 }
 ```
+
