@@ -74,6 +74,23 @@ The complete guide to persistent AI memory. Covers:
 | **Enterprise** | [Is soul.py Enterprise-Ready?](https://blog.themenonlab.com/blog/soul-py-enterprise-what-is-ready/) |
 
 
+## 📊 Benchmarks
+
+**[LoCoMo Benchmark Results →](https://menonpg.github.io/soul-benchmarks/)**
+
+Evaluated on [LoCoMo](https://github.com/snap-research/locomo) (Snap Research) — 1,986 questions across 10 long conversations testing single-hop recall, multi-hop reasoning, open-domain knowledge, and temporal understanding.
+
+| Config | Overall | Single-hop | Multi-hop | Open-domain | Temporal |
+|--------|---------|-----------|-----------|-------------|----------|
+| **RLM** | **70.0%** | **54.1%** | **82.1%** | 55.1% | **40.0%** |
+| Hybrid | 65.6% | 46.0% | 79.5% | 56.0% | 29.8% |
+| Qdrant (RAG) | 63.4% | 36.5% | 78.7% | **59.4%** | 27.0% |
+| BM25 | 63.1% | 38.4% | 77.8% | 50.8% | 29.3% |
+
+**RLM outperforms all baselines by 4–7 points**, with the largest gains on temporal reasoning (+10pts) and direct recall (+8pts). Full methodology and per-category breakdowns at [menonpg.github.io/soul-benchmarks](https://menonpg.github.io/soul-benchmarks/).
+
+---
+
 ## Install
 
 ```bash
