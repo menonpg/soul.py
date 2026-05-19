@@ -165,3 +165,30 @@ See the [GitHub Issues](https://github.com/menonpg/soul.py/issues) for current p
 | 🔲 | Hybrid search | Combine BM25 + semantic scores |
 | 🔲 | Query expansion | LLM rewrites query for better recall |
 | 🔲 | Snippet extraction | Dynamic context windows around matches |
+
+---
+
+## 🔜 Planned: Lightweight Entity Graph (`mode="graph"`)
+
+Extract entities and relationships from MEMORY.md on every write using regex-based extraction (zero LLM cost, à la gbrain). Enable graph traversal for multi-hop and relationship queries.
+
+- Optional — enabled via `mode="graph"` or `mode="hybrid+graph"`, default behavior unchanged
+- Requires extensive testing before release
+- **Rationale:** Top LoCoMo scorers (XMem 91.5%, Zep 75.1%) all use structured extraction. gbrain showed +31 precision points from graph alone.
+
+---
+
+## 🔜 Planned: Cross-Encoder Reranking (`mode="rerank"`)
+
+A ~150ms post-retrieval pass that reshuffles results with full query-document attention. Lightweight enough to preserve soul.py's zero-infrastructure constraint.
+
+- Already on roadmap, not yet implemented
+
+---
+
+## 🔜 Planned: Temporal Reasoning
+
+Temporal edges in the entity graph for tracking state changes over time.
+
+- Key weakness area: 40% temporal score on LoCoMo vs 91.9% for XMem
+- Closing this gap is the single highest-leverage improvement available
