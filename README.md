@@ -362,6 +362,27 @@ Each integration includes:
 
 ---
 
+## 📊 Benchmarks
+
+Tested on the [LoCoMo](https://arxiv.org/abs/2402.09146) long-conversation memory benchmark (1,986 questions, scored by Gemini 2.0 Flash):
+
+| System | Overall | Multi-Hop | Notes |
+|--------|---------|-----------|-------|
+| XMem | **91.5%** | 92.3% | Uses Gemini 3-flash |
+| Memobase | 75.8% | 46.9% | |
+| Zep | 75.1% | 66.0% | |
+| **soul.py (RLM)** | **70.0%** | **82.1%** | Gemini 2.0 Flash |
+| Mem0g (YC 24) | 68.4% | 47.2% | |
+| Mem0 (YC 24) | 66.9% | 51.2% | |
+| LangMem | 58.1% | 47.9% | |
+| OpenAI | 52.9% | 42.9% | |
+
+soul.py RLM beats Mem0 and LangMem on overall score and achieves the **highest multi-hop reasoning score (82.1%)** of any system tested. It trails XMem, Memobase, and Zep on overall — though XMem uses a significantly more capable model.
+
+**[Full results & data →](https://huggingface.co/datasets/pgmenon/soul-benchmarks-locomo)** · **[Interactive dashboard →](https://menonpg.github.io/soul-benchmarks/)**
+
+---
+
 ## Why not LangChain / LlamaIndex / MemGPT?
 
 Those are orchestration frameworks. soul.py is a primitive — persistent identity and memory you can drop into anything you're building.
