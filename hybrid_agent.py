@@ -9,6 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from rag_memory import RAGMemory, BM25
 from rlm_memory import RLMMemory
+from graph_memory import GraphMemory, RLMGraphMemory
 from router import classify
 
 
@@ -120,7 +121,7 @@ class HybridAgent:
     Args:
         soul_path: Path to SOUL.md
         memory_path: Path to MEMORY.md
-        mode: "auto" | "rag" | "rlm"
+        mode: "auto" | "rag" | "rlm" | "graph" | "graph-regex" | "rlm-graph" | "rlm-graph-regex"
         provider: "anthropic" | "gemini" | "openai" | "openai-compatible"
         api_key: API key for the provider (or use env var)
         base_url: For openai-compatible, the base URL (e.g., http://localhost:11434/v1)
@@ -225,6 +226,28 @@ class HybridAgent:
             chunk_size=rlm_chunk_size,
         )
 
+        # Graph memory (regex-based, no LLM cost)
+        graph_mode = "regex"  # default
+        if self.mode in ("graph", "rlm-graph"):
+            graph_mode = "llm"
+        elif self.mode in ("graph-regex", "rlm-graph-regex"):
+            graph_mode = "regex"
+
+        if self.mode in ("graph", "graph-regex", "rlm-graph", "rlm-graph-regex"):
+            if self.mode in ("rlm-graph", "rlm-graph-regex"):
+                self._rlm_graph = RLMGraphMemory(
+                    memory_path=str(self.memory_path),
+                    mode=graph_mode,
+                    chunk_size=rlm_chunk_size,
+                )
+            else:
+                self._graph = GraphMemory(
+                    memory_path=str(self.memory_path),
+                    mode=graph_mode,
+                    llm_client=self._client if graph_mode == "llm" else None,
+                    llm_model=self.router_model,
+                )
+
     def _read_soul(self):
         return self.soul_path.read_text().strip()
 
@@ -244,10 +267,65 @@ class HybridAgent:
             classification = classify(question, self._client, model=self.router_model)
             route = classification["route"]
             router_ms = classification["latency_ms"]
+        elif self.mode in ("graph", "graph-regex"):
+            route = "GRAPH"
+        elif self.mode in ("rlm-graph", "rlm-graph-regex"):
+            route = "RLM_GRAPH"
         else:
             route = "EXHAUSTIVE" if self.mode == "rlm" else "FOCUSED"
 
-        if route == "FOCUSED":
+        if route == "GRAPH":
+            # Graph-only path
+            t1 = time.time()
+            graph_context = self._graph.retrieve(question)
+            retrieval_ms = int((time.time()-t1)*1000)
+
+            system = f"{self._read_soul()}\n\n---\n\n{graph_context}"
+            self._history.append({"role":"user","content":question})
+            answer = self._client.messages_create(
+                model=self.chat_model, max_tokens=512,
+                messages=self._history, system=system,
+            )
+            self._history.append({"role":"assistant","content":answer})
+
+            if remember:
+                self._rag.append(f"Q: {question}\nA: {answer}")
+
+            return {
+                "answer": answer, "route": f"GRAPH ({self.mode})",
+                "router_ms": router_ms, "retrieval_ms": retrieval_ms,
+                "total_ms": int((time.time()-t0)*1000),
+                "rag_context": None, "rlm_meta": None,
+                "graph_stats": self._graph.stats(),
+            }
+
+        elif route == "RLM_GRAPH":
+            # RLM + Graph hybrid path
+            t1 = time.time()
+            rlm_graph_result = self._rlm_graph.retrieve(question, self._client)
+            retrieval_ms = int((time.time()-t1)*1000)
+            answer = rlm_graph_result["answer"]
+
+            if remember:
+                self._rag.append(f"Q: {question}\nA: {answer}")
+
+            return {
+                "answer": answer, "route": f"RLM+GRAPH ({self.mode})",
+                "router_ms": router_ms, "retrieval_ms": retrieval_ms,
+                "total_ms": int((time.time()-t0)*1000),
+                "rag_context": None,
+                "rlm_meta": {
+                    "chunks_processed": rlm_graph_result["chunks_processed"],
+                    "relevant_chunks": rlm_graph_result["relevant_chunks"],
+                    "sub_summaries": rlm_graph_result["sub_summaries"],
+                },
+                "graph_stats": {
+                    "entities": rlm_graph_result["graph_entities"],
+                    "relationships": rlm_graph_result["graph_relationships"],
+                },
+            }
+
+        elif route == "FOCUSED":
             # RAG path
             t1 = time.time()
             rag_context = self._rag.retrieve(question)
