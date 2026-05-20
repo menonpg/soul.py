@@ -161,6 +161,8 @@ See the [GitHub Issues](https://github.com/menonpg/soul.py/issues) for current p
 
 | Status | Feature | Notes |
 |--------|---------|-------|
+| 🔲 | **RLM + Graph** | Combine RLM with knowledge graph (entity/relationship extraction) |
+| 🔲 | **Graph (Regex)** | Lightweight regex-based graph builder (no LLM calls) |
 | 🔲 | LLM Reranking | Score/filter RAG results before generation |
 | 🔲 | Hybrid search | Combine BM25 + semantic scores |
 | 🔲 | Query expansion | LLM rewrites query for better recall |
